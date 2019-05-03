@@ -22,7 +22,7 @@ if __name__ == '__main__':
     if rank == 0:
         t1 = Token(lista, local, 2, cond)
         comm.send(t1, dest=1, tag=11)
-    elif rank == 1:
+    else:
         t2 = comm.recv(source=0, tag=11)
         while t2.queue:
             print(t2.queue.popleft())
