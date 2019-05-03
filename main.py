@@ -1,6 +1,7 @@
 from mpi4py import MPI
 from Token import Token
 from Monitor import Monitor
+from Monitor import Request
 from collections import deque
 import time
 import random
@@ -10,6 +11,7 @@ if __name__ == '__main__':
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    size = comm.Get_size()
     print(rank)
     mon = Monitor()
     # if rank == 0:
@@ -30,12 +32,22 @@ if __name__ == '__main__':
     #     mon.enterCS()
         
     # while(1):
-    for i in range(2): 
+    # for i in range(2): 
         # time.sleep(random.randint(0,3))
+    # mon.enterCS()
+    while True:
+        if rank == 0:
+            mon.enterCS()
+            mon.exitCS()
+            # time.sleep(1)
+        else:
+            mon.enterCS()
+            mon.exitCS()
+            # time.sleep(1)
+        # while(True): continue
     
-        mon.enterCS()
     # time.sleep(random.randint(1,10))
-        mon.exitCS()
+    # mon.exitCS()
 
     # local = deque([])
     # local.append(1)

@@ -45,6 +45,7 @@ class Monitor:
             print("id = {0} is waiting for token".format(self.ident))
             self.token = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
             self.hasToken = True
+        print("id = {0} RN: {1} token-LN: {2}".format(self.ident, self.RN, self.token.LN))
         print("id = {0} is in CS".format(self.ident))
         self.inCS = True
 
@@ -58,17 +59,19 @@ class Monitor:
             
             print("id = {0} sending request to {1}".format(self.ident, i))
             if(self.ident == i): continue
-            comm.send(obj = req, dest=i, tag=REQUEST)
+            comm.send(req, dest=i, tag=REQUEST)
     
     def exitCS(self):
         # mutex_lock
         mutex.acquire()
         print("id = {0} exit CS".format(self.ident))
-        self.tokenRelease()
         
+        self.tokenRelease()
+        print("id = {0} RN: {1}".format(self.ident, self.RN))
         self.inCS = False
         # mutex_unlock
         mutex.release()
+        
 
     def tokenRelease(self):
         for i in range(comm.Get_size()):
@@ -78,7 +81,7 @@ class Monitor:
 
         if self.token.queue:
             newOwner = self.token.queue.popleft()
-            comm.send(obj = self.token, dest = newOwner, tag = TOKEN)
+            comm.send(self.token, dest = newOwner, tag = TOKEN)
             self.hasToken = False
             self.token = None
 
@@ -90,16 +93,19 @@ class Monitor:
             info = MPI.Status()
             
             comm.probe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
+            
             # mutex_lock
             mutex.acquire()
-            if info.tag == REQUEST:
-                
+            
+            if info.tag == REQUEST: 
                 req = comm.recv(source = MPI.ANY_SOURCE, tag = REQUEST)
                 print("id = {0} new request from: {1}".format(self.ident, req.ident))
                 self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
             
                 if self.hasToken and not(self.inCS):
-                    comm.send(obj = self.token, dest = req.ident, tag = TOKEN)
+                    # print("id = {0} send token to: {1}".format(self.ident, req.ident))
+                    self.token.LN = self.RN
+                    comm.send(self.token, dest = req.ident, tag = TOKEN)
                     self.hasToken = False
                     self.token = None
 
