@@ -29,7 +29,7 @@ class Monitor:
         self.ident = comm.Get_rank()
         self.token = None
         if(self.ident == 0):
-            print("id = {0} initializing token".format(self.ident))
+            print("id = {0} initializing token\n".format(self.ident))
             self.token = Token([0] * comm.Get_size(), deque([]) , 0, {})
             self.hasToken = True
         t1 = threading.Thread(target= self.recieverThread)
@@ -38,15 +38,16 @@ class Monitor:
 
     def enterCS(self):
         mutex.acquire()
-        print("id = {0} trying to enter to CS".format(self.ident))
+        print("id = {0} trying to enter to CS\n".format(self.ident))
         if(not(self.hasToken)):
             self.sendRequest()
             info = MPI.Status()
-            print("id = {0} is waiting for token".format(self.ident))
+            print("id = {0} is waiting for token\n".format(self.ident))
             self.token = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
+            print("id = {0} recived token from: {1}\n".format(self.ident, info.source))
             self.hasToken = True
-        print("id = {0} RN: {1} token-LN: {2}".format(self.ident, self.RN, self.token.LN))
-        print("id = {0} is in CS".format(self.ident))
+        print("id = {0} RN: {1} token-LN: {2}\n".format(self.ident, self.RN, self.token.LN))
+        print("id = {0} is in CS\n".format(self.ident))
         self.inCS = True
 
         mutex.release()
@@ -55,19 +56,19 @@ class Monitor:
         self.RN[self.ident] += 1
         req = Request(self.ident, self.RN[self.ident])
         for i in range(comm.Get_size()):
-            print(type(i))
+            # print(type(i))
             
-            print("id = {0} sending request to {1}".format(self.ident, i))
+            print("id = {0} sending request to {1}\n".format(self.ident, i))
             if(self.ident == i): continue
             comm.send(req, dest=i, tag=REQUEST)
     
     def exitCS(self):
         # mutex_lock
         mutex.acquire()
-        print("id = {0} exit CS".format(self.ident))
+        print("id = {0} exit CS\n".format(self.ident))
         
         self.tokenRelease()
-        print("id = {0} RN: {1}".format(self.ident, self.RN))
+        print("id = {0} RN: {1}\n".format(self.ident, self.RN))
         self.inCS = False
         # mutex_unlock
         mutex.release()
@@ -81,13 +82,14 @@ class Monitor:
 
         if self.token.queue:
             newOwner = self.token.queue.popleft()
+            print("id = {0} send token tokenRelease to: {1}\n".format(self.ident, newOwner))
             comm.send(self.token, dest = newOwner, tag = TOKEN)
             self.hasToken = False
             self.token = None
 
     def recieverThread(self):
-        print("id = {0} reciver process started".format(self.ident))
-        print("id = {0} waiting for a message".format(self.ident))
+        print("id = {0} reciver process started\n".format(self.ident))
+        print("id = {0} waiting for a message\n".format(self.ident))
         
         while True:
             info = MPI.Status()
@@ -99,15 +101,18 @@ class Monitor:
             
             if info.tag == REQUEST: 
                 req = comm.recv(source = MPI.ANY_SOURCE, tag = REQUEST)
-                print("id = {0} new request from: {1}".format(self.ident, req.ident))
+                print("id = {0} new request from: {1}\n".format(self.ident, req.ident))
+                
                 self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
-            
-                if self.hasToken and not(self.inCS):
-                    # print("id = {0} send token to: {1}".format(self.ident, req.ident))
+                
+                if self.hasToken and not(self.inCS) and self.RN[req.ident] == self.token.LN[req.ident] + 1:
+                    print("id = {0} send token via thread to: {1}\n".format(self.ident, req.ident))
+                    
                     self.token.LN = self.RN
                     comm.send(self.token, dest = req.ident, tag = TOKEN)
                     self.hasToken = False
                     self.token = None
+                    
 
             # mutex_unlock
             mutex.release()

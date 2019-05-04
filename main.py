@@ -12,8 +12,18 @@ if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    print(rank)
+    print("rank: {0}\n".format(rank))
     mon = Monitor()
+    time.sleep(1)
+    # print("Poszpalam")
+    # if rank == 0:
+    #     for i in range(10):
+    #         req = Request(0,i)
+    #         comm.send(req, dest = 1, tag = 1)
+    # # else:
+    #     for i in range(10):
+    #         req1 = comm.recv(source = MPI.ANY_SOURCE, tag = 1)
+    #         print(req1.ident, req1.seqNo)
     # if rank == 0:
     #     pass
         # local = deque([])
@@ -35,14 +45,7 @@ if __name__ == '__main__':
     # for i in range(2): 
         # time.sleep(random.randint(0,3))
     # mon.enterCS()
-    while True:
-        if rank == 0:
-            mon.enterCS()
-            mon.exitCS()
-            # time.sleep(1)
-        else:
-            mon.enterCS()
-            mon.exitCS()
+    
             # time.sleep(1)
         # while(True): continue
     
@@ -67,3 +70,20 @@ if __name__ == '__main__':
     #     while t2.queue:
     #         print(t2.queue.popleft())
     #     print(t2)
+
+    # # dzialalo nie usuwac
+    for _ in range(5):
+        if rank == 0:
+            mon.enterCS()
+            mon.exitCS()
+            czas = random.randint(1,5)
+            print("{0} gonna sleep for {1}\n".format(rank,czas))
+            time.sleep(czas)
+        else:
+            mon.enterCS()
+            mon.exitCS()
+            czas = random.randint(1,5)
+            print("{0} gonna sleep for {1}\n".format(rank,czas))
+            time.sleep(czas)
+        
+    print("rank: {0} - main thread stop\n".format(rank))
