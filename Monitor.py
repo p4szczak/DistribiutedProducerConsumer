@@ -146,13 +146,16 @@ class Monitor:
         mutex.release()
 
     def signal(self, condString):
-        # mutex.acquire()
-        if not(condString in self.token.condQueue.keys()):
-            return
+        mutex.acquire()
+        if condString in self.token.condQueue.keys():     
+            if self.token.condQueue[condString]:
+                self.token.queue.append(self.token.condQueue[condString].popleft())
+        mutex.release()
 
-        if not(self.token.condQueue[condString]):
-            return
-
-        self.token.queue.append(self.token.condQueue[condString].popleft())
-        # mutex.release()
+    def signalAll(self, condString):
+        mutex.acquire()
+        if condString in self.token.condQueue.keys():     
+            while self.token.condQueue[condString]:
+                self.token.queue.append(self.token.condQueue[condString].popleft())
+        mutex.release()
 

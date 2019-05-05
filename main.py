@@ -95,28 +95,33 @@ if __name__ == '__main__':
         
     # print("rank: {0} - main thread stop\n".format(rank))
 
-    for _ in range(10):
-        if rank == 0: #PRODUCENT
+    
+    if rank == 0: #PRODUCENT
+        for _ in range(10):
             czas2 = random.randint(1,5)
             time.sleep(czas2)
             mon.enterCS()
-            if(mon.token.inStock == 1): mon.wait("FULL")
+            print("before: {0}\n".format(mon.token.inStock))
+            while(mon.token.inStock == 1): mon.wait("FULL")
             print("rank: 0 produkuje..\n")
             mon.token.inStock+=1
-            print(mon.token.inStock)
-            mon.signal("EMPTY")
+            print("after: {0}\n".format(mon.token.inStock))
+            mon.signalAll("EMPTY")
             mon.exitCS()
-        else:
+    else:
+        for _ in range(5):
             czas2 = random.randint(1,5)
             time.sleep(czas2)
             mon.enterCS()
-            if(mon.token.inStock == 0): mon.wait("EMPTY")
+            print("before: {0}\n".format(mon.token.inStock))
+            while(mon.token.inStock == 0): mon.wait("EMPTY")
             print("rank: 1 konsumuje..\n")
             mon.token.inStock-=1
-            print(mon.token.inStock)
-            mon.signal("FULL")
+            print("after: {0}\n".format(mon.token.inStock))
+            mon.signalAll("FULL")
             mon.exitCS()
-    print("loop ended")
+    print("loop ended\n")
+        
     # neq = deque([])
     # neq.append(1)
     # print(neq)
