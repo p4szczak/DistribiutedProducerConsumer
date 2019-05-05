@@ -15,6 +15,9 @@ if __name__ == '__main__':
     print("rank: {0}\n".format(rank))
     mon = Monitor()
     time.sleep(1)
+
+
+
     # print("Poszpalam")
     # if rank == 0:
     #     for i in range(10):
@@ -72,22 +75,48 @@ if __name__ == '__main__':
     #     print(t2)
 
     # # dzialalo nie usuwac
-    for _ in range(5):
-        if rank == 0:
-            mon.enterCS()
-            czas2 = random.randint(1,5)
-            time.sleep(czas2)
-            mon.exitCS()
-            czas = random.randint(1,5)
-            print("{0} gonna sleep for {1}\n".format(rank,czas))
-            time.sleep(czas)
-        else:
-            mon.enterCS()
-            czas2 = random.randint(1,5)
-            time.sleep(czas2)
-            mon.exitCS()
-            czas = random.randint(1,5)
-            print("{0} gonna sleep for {1}\n".format(rank,czas))
-            time.sleep(czas)
+    # for _ in range(5):
+    #     if rank == 0:
+    #         mon.enterCS()
+    #         czas2 = random.randint(1,5)
+    #         time.sleep(czas2)
+    #         mon.exitCS()
+    #         czas = random.randint(1,5)
+    #         print("{0} gonna sleep for {1}\n".format(rank,czas))
+    #         time.sleep(czas)
+    #     else:
+    #         mon.enterCS()
+    #         czas2 = random.randint(1,5)
+    #         time.sleep(czas2)
+    #         mon.exitCS()
+    #         czas = random.randint(1,5)
+    #         print("{0} gonna sleep for {1}\n".format(rank,czas))
+    #         time.sleep(czas)
         
-    print("rank: {0} - main thread stop\n".format(rank))
+    # print("rank: {0} - main thread stop\n".format(rank))
+
+    for _ in range(10):
+        if rank == 0: #PRODUCENT
+            czas2 = random.randint(1,5)
+            time.sleep(czas2)
+            mon.enterCS()
+            if(mon.token.inStock == 1): mon.wait("FULL")
+            print("rank: 0 produkuje..\n")
+            mon.token.inStock+=1
+            print(mon.token.inStock)
+            mon.signal("EMPTY")
+            mon.exitCS()
+        else:
+            czas2 = random.randint(1,5)
+            time.sleep(czas2)
+            mon.enterCS()
+            if(mon.token.inStock == 0): mon.wait("EMPTY")
+            print("rank: 1 konsumuje..\n")
+            mon.token.inStock-=1
+            print(mon.token.inStock)
+            mon.signal("FULL")
+            mon.exitCS()
+    print("loop ended")
+    # neq = deque([])
+    # neq.append(1)
+    # print(neq)

@@ -119,3 +119,40 @@ class Monitor:
 
             # mutex_unlock
             mutex.release()
+    
+    def wait(self, condString):
+
+        mutex.acquire()
+        print("id = {0} is in wait status; cond = {1}..\n".format(self.ident, condString))
+        if condString in self.token.condQueue.keys():
+            self.token.condQueue[condString].append(self.ident)
+        else:
+            newQueue = deque([self.ident])
+            self.token.condQueue[condString] = newQueue
+        
+        self.tokenRelease()
+        self.inCS = False
+
+        info = MPI.Status()
+        mutex.release()
+        
+        tempToken = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
+
+        mutex.acquire()
+        self.token = tempToken
+        self.hasToken = True
+        self.inCS = True
+        print("id = {0} wait ended; cond = {1}..\n".format(self.ident, condString))
+        mutex.release()
+
+    def signal(self, condString):
+        # mutex.acquire()
+        if not(condString in self.token.condQueue.keys()):
+            return
+
+        if not(self.token.condQueue[condString]):
+            return
+
+        self.token.queue.append(self.token.condQueue[condString].popleft())
+        # mutex.release()
+
