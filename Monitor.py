@@ -42,8 +42,11 @@ class Monitor:
         if(not(self.hasToken)):
             self.sendRequest()
             info = MPI.Status()
+            mutex.release()
             print("id = {0} is waiting for token\n".format(self.ident))
-            self.token = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
+            tempToken = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
+            mutex.acquire()
+            self.token = tempToken
             print("id = {0} recived token from: {1}\n".format(self.ident, info.source))
             self.hasToken = True
         print("id = {0} RN: {1} token-LN: {2}\n".format(self.ident, self.RN, self.token.LN))

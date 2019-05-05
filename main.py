@@ -75,12 +75,16 @@ if __name__ == '__main__':
     for _ in range(5):
         if rank == 0:
             mon.enterCS()
+            czas2 = random.randint(1,5)
+            time.sleep(czas2)
             mon.exitCS()
             czas = random.randint(1,5)
             print("{0} gonna sleep for {1}\n".format(rank,czas))
             time.sleep(czas)
         else:
             mon.enterCS()
+            czas2 = random.randint(1,5)
+            time.sleep(czas2)
             mon.exitCS()
             czas = random.randint(1,5)
             print("{0} gonna sleep for {1}\n".format(rank,czas))
