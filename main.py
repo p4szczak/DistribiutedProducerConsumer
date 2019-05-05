@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # print("rank: {0} - main thread stop\n".format(rank))
 
     
-    if rank == 0: #PRODUCENT
+    if rank % 2 == 0: #PRODUCENT
         for _ in range(10):
             czas2 = random.randint(1,5)
             time.sleep(czas2)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             mon.signalAll("EMPTY")
             mon.exitCS()
     else:
-        for _ in range(5):
+        for _ in range(10):
             czas2 = random.randint(1,5)
             time.sleep(czas2)
             mon.enterCS()
@@ -121,6 +121,9 @@ if __name__ == '__main__':
             mon.signalAll("FULL")
             mon.exitCS()
     print("loop ended\n")
+    mon.threadLive = False
+
+    
         
     # neq = deque([])
     # neq.append(1)

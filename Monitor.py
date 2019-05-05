@@ -8,7 +8,7 @@ import time
 
 
 comm = MPI.COMM_WORLD
-mutex = threading.Lock()
+
 
 # #enum
 # class MsgType(Enum):
@@ -28,24 +28,27 @@ class Monitor:
         self.inCS = False
         self.ident = comm.Get_rank()
         self.token = None
+        self.mutex = threading.Lock()
+        self.threadLive = True
         if(self.ident == 0):
             print("id = {0} initializing token\n".format(self.ident))
             self.token = Token([0] * comm.Get_size(), deque([]) , 0, {})
             self.hasToken = True
-        t1 = threading.Thread(target= self.recieverThread)
-        t1.start()
+        self.t1 = threading.Thread(target= self.recieverThread)
+        self.t1.start()
         # t1.join()
 
+        
     def enterCS(self):
-        mutex.acquire()
+        self.mutex.acquire()
         print("id = {0} trying to enter to CS\n".format(self.ident))
         if(not(self.hasToken)):
             self.sendRequest()
             info = MPI.Status()
-            mutex.release()
+            self.mutex.release()
             print("id = {0} is waiting for token\n".format(self.ident))
             tempToken = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
-            mutex.acquire()
+            self.mutex.acquire()
             self.token = tempToken
             print("id = {0} recived token from: {1}\n".format(self.ident, info.source))
             self.hasToken = True
@@ -53,7 +56,7 @@ class Monitor:
         print("id = {0} is in CS\n".format(self.ident))
         self.inCS = True
 
-        mutex.release()
+        self.mutex.release()
 
     def sendRequest(self):
         self.RN[self.ident] += 1
@@ -63,18 +66,18 @@ class Monitor:
             
             print("id = {0} sending request to {1}\n".format(self.ident, i))
             if(self.ident == i): continue
-            comm.send(req, dest=i, tag=REQUEST)
+            comm.isend(req, dest=i, tag=REQUEST)
     
     def exitCS(self):
-        # mutex_lock
-        mutex.acquire()
+        # self.mutex_lock
+        self.mutex.acquire()
         print("id = {0} exit CS\n".format(self.ident))
         
         self.tokenRelease()
         print("id = {0} RN: {1}\n".format(self.ident, self.RN))
         self.inCS = False
-        # mutex_unlock
-        mutex.release()
+        # self.mutex_unlock
+        self.mutex.release()
         
 
     def tokenRelease(self):
@@ -89,21 +92,61 @@ class Monitor:
             comm.send(self.token, dest = newOwner, tag = TOKEN)
             self.hasToken = False
             self.token = None
+    
+    def wait(self, condString):
+
+        self.mutex.acquire()
+        print("id = {0} is in wait status; cond = {1}..\n".format(self.ident, condString))
+        if condString in self.token.condQueue.keys():
+            self.token.condQueue[condString].append(self.ident)
+        else:
+            newQueue = deque([self.ident])
+            self.token.condQueue[condString] = newQueue
+        
+        self.tokenRelease()
+        self.inCS = False
+
+        info = MPI.Status()
+        self.mutex.release()
+        
+        tempToken = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
+
+        self.mutex.acquire()
+        self.token = tempToken
+        self.hasToken = True
+        self.inCS = True
+        print("id = {0} wait ended; cond = {1}; token came from {2}..\n".format(self.ident, condString, info.source))
+        self.mutex.release()
+
+    def signal(self, condString):
+        self.mutex.acquire()
+        if condString in self.token.condQueue.keys():     
+            if self.token.condQueue[condString]:
+                self.token.queue.append(self.token.condQueue[condString].popleft())
+        self.mutex.release()
+
+    def signalAll(self, condString):
+        self.mutex.acquire()
+        if condString in self.token.condQueue.keys():     
+            while self.token.condQueue[condString]:
+                self.token.queue.append(self.token.condQueue[condString].popleft())
+        self.mutex.release()
 
     def recieverThread(self):
         print("id = {0} reciver process started\n".format(self.ident))
         print("id = {0} waiting for a message\n".format(self.ident))
         
-        while True:
+        while self.threadLive:
             info = MPI.Status()
             
-            comm.probe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
+            comm.iprobe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
             
-            # mutex_lock
-            mutex.acquire()
+            # self.mutex_lock
+            
             
             if info.tag == REQUEST: 
-                req = comm.recv(source = MPI.ANY_SOURCE, tag = REQUEST)
+                self.mutex.acquire()
+                req = comm.irecv(source = MPI.ANY_SOURCE, tag = REQUEST).wait()
                 print("id = {0} new request from: {1}\n".format(self.ident, req.ident))
                 
                 self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
@@ -116,46 +159,4 @@ class Monitor:
                     self.hasToken = False
                     self.token = None
                     
-
-            # mutex_unlock
-            mutex.release()
-    
-    def wait(self, condString):
-
-        mutex.acquire()
-        print("id = {0} is in wait status; cond = {1}..\n".format(self.ident, condString))
-        if condString in self.token.condQueue.keys():
-            self.token.condQueue[condString].append(self.ident)
-        else:
-            newQueue = deque([self.ident])
-            self.token.condQueue[condString] = newQueue
-        
-        self.tokenRelease()
-        self.inCS = False
-
-        info = MPI.Status()
-        mutex.release()
-        
-        tempToken = comm.recv(source = MPI.ANY_SOURCE, tag = TOKEN, status = info)
-
-        mutex.acquire()
-        self.token = tempToken
-        self.hasToken = True
-        self.inCS = True
-        print("id = {0} wait ended; cond = {1}..\n".format(self.ident, condString))
-        mutex.release()
-
-    def signal(self, condString):
-        mutex.acquire()
-        if condString in self.token.condQueue.keys():     
-            if self.token.condQueue[condString]:
-                self.token.queue.append(self.token.condQueue[condString].popleft())
-        mutex.release()
-
-    def signalAll(self, condString):
-        mutex.acquire()
-        if condString in self.token.condQueue.keys():     
-            while self.token.condQueue[condString]:
-                self.token.queue.append(self.token.condQueue[condString].popleft())
-        mutex.release()
-
+                self.mutex.release()
