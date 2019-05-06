@@ -14,6 +14,7 @@ comm = MPI.COMM_WORLD
 # class MsgType(Enum):
 REQUEST = 1
 TOKEN = 2
+KILL = 3
 
 class Request:
     def __init__(self, ident, seqNo):
@@ -28,20 +29,44 @@ class Monitor:
         self.inCS = False
         self.ident = comm.Get_rank()
         self.token = None
+
+        self.actives = list(range(0,comm.Get_size()))
+
         self.mutex = threading.Lock()
         self.threadLive = True
         if(self.ident == 0):
             print("id = {0} initializing token\n".format(self.ident))
             self.token = Token([0] * comm.Get_size(), deque([]) , 0, {})
             self.hasToken = True
-        self.t1 = threading.Thread(target= self.recieverThread)
+        self.stop_threads = False
+        self.t1 = threading.Thread(target= self.recieverThread, args =(lambda : self.stop_threads, ))
         self.t1.start()
         # t1.join()
 
+    def kill(self):
+        self.mutex.acquire()
+        self.stop_threads = True
+        self.actives.remove(self.ident)
+
+        for i in self.actives:
+            req = Request(self.ident, -1)
+            comm.send(req, dest = i, tag = KILL)
+
+        if self.hasToken and len(self.actives) > 0:
+            comm.send(self.token, dest = self.actives[0], tag=TOKEN)
+            print("id = {0} realising token to {1}\n".format(self.ident, self.actives[0]))
+
+        self.token = None
+        self.t1.join()
+        self.mutex.release()
+
         
+        
+
     def enterCS(self):
         self.mutex.acquire()
         print("id = {0} trying to enter to CS\n".format(self.ident))
+        
         if(not(self.hasToken)):
             self.sendRequest()
             info = MPI.Status()
@@ -61,7 +86,7 @@ class Monitor:
     def sendRequest(self):
         self.RN[self.ident] += 1
         req = Request(self.ident, self.RN[self.ident])
-        for i in range(comm.Get_size()):
+        for i in self.actives:
             # print(type(i))
             
             print("id = {0} sending request to {1}\n".format(self.ident, i))
@@ -73,22 +98,22 @@ class Monitor:
         self.mutex.acquire()
         print("id = {0} exit CS\n".format(self.ident))
         
-        self.tokenRelease()
+        self.tokenTransfer()
         print("id = {0} RN: {1}\n".format(self.ident, self.RN))
         self.inCS = False
         # self.mutex_unlock
         self.mutex.release()
         
 
-    def tokenRelease(self):
-        for i in range(comm.Get_size()):
+    def tokenTransfer(self):
+        for i in self.actives:
             if self.RN[i] == self.token.LN[i] + 1:
                 self.token.LN[i] = self.RN[i]
                 self.token.queue.append(i)
 
         if self.token.queue:
             newOwner = self.token.queue.popleft()
-            print("id = {0} send token tokenRelease to: {1}\n".format(self.ident, newOwner))
+            print("id = {0} send token via tokenTransfer to: {1}\n".format(self.ident, newOwner))
             comm.send(self.token, dest = newOwner, tag = TOKEN)
             self.hasToken = False
             self.token = None
@@ -103,7 +128,7 @@ class Monitor:
             newQueue = deque([self.ident])
             self.token.condQueue[condString] = newQueue
         
-        self.tokenRelease()
+        self.tokenTransfer()
         self.inCS = False
 
         info = MPI.Status()
@@ -132,25 +157,29 @@ class Monitor:
                 self.token.queue.append(self.token.condQueue[condString].popleft())
         self.mutex.release()
 
-    def recieverThread(self):
+    def recieverThread(self, stop):
         print("id = {0} reciver process started\n".format(self.ident))
         print("id = {0} waiting for a message\n".format(self.ident))
         
-        while self.threadLive:
+        while True:
             info = MPI.Status()
             
             comm.iprobe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
-            
+            self.mutex.acquire()
             # self.mutex_lock
             
-            
             if info.tag == REQUEST: 
-                self.mutex.acquire()
+                
                 req = comm.irecv(source = MPI.ANY_SOURCE, tag = REQUEST).wait()
-                print("id = {0} new request from: {1}\n".format(self.ident, req.ident))
+                print("id = {0} new request from: {1} with seq = {2}\n".format(self.ident, req.ident,req.seqNo))
                 
-                self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
+                # self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
                 
+                if self.RN[req.ident] >= req.seqNo:
+                    continue
+                
+                self.RN[req.ident] = req.seqNo
+
                 if self.hasToken and not(self.inCS) and self.RN[req.ident] == self.token.LN[req.ident] + 1:
                     print("id = {0} send token via thread to: {1}\n".format(self.ident, req.ident))
                     
@@ -158,5 +187,10 @@ class Monitor:
                     comm.send(self.token, dest = req.ident, tag = TOKEN)
                     self.hasToken = False
                     self.token = None
-                    
-                self.mutex.release()
+            if info.tag == KILL:
+                req = comm.irecv(source = MPI.ANY_SOURCE, tag = REQUEST).wait()
+                print("id = {0} recieved information about kill from: {1}\n".format(self.ident, req.ident))
+                self.actives.remove(req.ident)
+            self.mutex.release()
+            if stop():
+                break

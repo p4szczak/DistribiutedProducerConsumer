@@ -96,32 +96,34 @@ if __name__ == '__main__':
     # print("rank: {0} - main thread stop\n".format(rank))
 
     
-    if rank % 2 == 0: #PRODUCENT
-        for _ in range(10):
-            czas2 = random.randint(1,5)
+    if rank == 0: #PRODUCENT
+        for _ in range(3):
+            print("rank: {0} -> {1}\n".format(rank,_))
+            czas2 = random.randint(1,3)
             time.sleep(czas2)
             mon.enterCS()
             print("before: {0}\n".format(mon.token.inStock))
             while(mon.token.inStock == 1): mon.wait("FULL")
-            print("rank: 0 produkuje..\n")
+            print("rank: {0} produkuje..\n".format(rank))
             mon.token.inStock+=1
             print("after: {0}\n".format(mon.token.inStock))
             mon.signalAll("EMPTY")
             mon.exitCS()
     else:
-        for _ in range(10):
-            czas2 = random.randint(1,5)
+        for _ in range(3):
+            print("rank: {0} -> {1}\n".format(rank,_))
+            czas2 = random.randint(1,3)
             time.sleep(czas2)
             mon.enterCS()
             print("before: {0}\n".format(mon.token.inStock))
             while(mon.token.inStock == 0): mon.wait("EMPTY")
-            print("rank: 1 konsumuje..\n")
+            print("rank: {0} konsumuje..\n".format(rank))
             mon.token.inStock-=1
             print("after: {0}\n".format(mon.token.inStock))
             mon.signalAll("FULL")
             mon.exitCS()
     print("loop ended\n")
-    mon.threadLive = False
+    # mon.kill()
 
     
         
