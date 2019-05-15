@@ -96,7 +96,7 @@ if __name__ == '__main__':
     # print("rank: {0} - main thread stop\n".format(rank))
 
     
-    if rank == 0: #PRODUCENT
+    if rank % 2 == 0: #PRODUCENT
         for _ in range(3):
             print("rank: {0} -> {1}\n".format(rank,_))
             czas2 = random.randint(1,3)
@@ -123,7 +123,8 @@ if __name__ == '__main__':
             mon.signalAll("FULL")
             mon.exitCS()
     print("loop ended\n")
-    # mon.kill()
+    mon.kill()
+    # mon.threadLive = False
 
     
         

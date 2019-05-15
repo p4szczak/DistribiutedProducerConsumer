@@ -38,27 +38,32 @@ class Monitor:
             print("id = {0} initializing token\n".format(self.ident))
             self.token = Token([0] * comm.Get_size(), deque([]) , 0, {})
             self.hasToken = True
-        self.stop_threads = False
-        self.t1 = threading.Thread(target= self.recieverThread, args =(lambda : self.stop_threads, ))
+        # self.stop_threads = False
+        self.t1 = threading.Thread(target= self.recieverThread)
         self.t1.start()
         # t1.join()
 
     def kill(self):
         self.mutex.acquire()
-        self.stop_threads = True
-        self.actives.remove(self.ident)
-
-        for i in self.actives:
-            req = Request(self.ident, -1)
-            comm.send(req, dest = i, tag = KILL)
-
-        if self.hasToken and len(self.actives) > 0:
-            comm.send(self.token, dest = self.actives[0], tag=TOKEN)
-            print("id = {0} realising token to {1}\n".format(self.ident, self.actives[0]))
-
-        self.token = None
-        self.t1.join()
+        self.threadLive = False
         self.mutex.release()
+        # self.actives.remove(self.ident)
+        for i in self.actives:
+            if i == self.ident: continue
+            print("id = {0} sends info about dying\n".format(self.ident))
+            req = Request(self.ident, -1)
+            comm.isend(req, dest = i, tag = KILL)
+
+        self.t1.join()
+        # self.token = None
+        
+
+        # while self.hasToken and len(self.actives) > 0:
+        #     print("{0} {1}".format(self.hasToken, len(self.actives)))
+            # comm.send(self.token, dest = self.actives[0], tag=TOKEN)
+        print("id = {0} is dead\n".format(self.ident))
+
+        
 
         
         
@@ -89,19 +94,17 @@ class Monitor:
         for i in self.actives:
             # print(type(i))
             
-            print("id = {0} sending request to {1}\n".format(self.ident, i))
+            print("id = {0} sending request to {1} with seq: {2}\n".format(self.ident, i, req.seqNo))
             if(self.ident == i): continue
             comm.isend(req, dest=i, tag=REQUEST)
     
     def exitCS(self):
-        # self.mutex_lock
         self.mutex.acquire()
         print("id = {0} exit CS\n".format(self.ident))
         
         self.tokenTransfer()
         print("id = {0} RN: {1}\n".format(self.ident, self.RN))
         self.inCS = False
-        # self.mutex_unlock
         self.mutex.release()
         
 
@@ -157,17 +160,15 @@ class Monitor:
                 self.token.queue.append(self.token.condQueue[condString].popleft())
         self.mutex.release()
 
-    def recieverThread(self, stop):
+    def recieverThread(self):
         print("id = {0} reciver process started\n".format(self.ident))
         print("id = {0} waiting for a message\n".format(self.ident))
-        
+        deadCount = 0
         while True:
             info = MPI.Status()
-            
             comm.iprobe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
             self.mutex.acquire()
             # self.mutex_lock
-            
             if info.tag == REQUEST: 
                 
                 req = comm.irecv(source = MPI.ANY_SOURCE, tag = REQUEST).wait()
@@ -188,9 +189,12 @@ class Monitor:
                     self.hasToken = False
                     self.token = None
             if info.tag == KILL:
-                req = comm.irecv(source = MPI.ANY_SOURCE, tag = REQUEST).wait()
+                req = comm.irecv(source = MPI.ANY_SOURCE, tag = KILL).wait()
                 print("id = {0} recieved information about kill from: {1}\n".format(self.ident, req.ident))
-                self.actives.remove(req.ident)
+                deadCount+=1
+                # self.actives.remove(req.ident)
             self.mutex.release()
-            if stop():
+            if (self.threadLive == False and self.hasToken == False) or (comm.Get_size() - deadCount == 1):
+                print("id = {0} breaks\n".format(self.ident))
                 break
+                
