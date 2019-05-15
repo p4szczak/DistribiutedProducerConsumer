@@ -1,6 +1,8 @@
 from mpi4py import MPI
 from Token import Token
 from Monitor import Monitor
+from Client import Client
+from Producer import Producer
 from Monitor import Request
 from collections import deque
 import time
@@ -13,7 +15,7 @@ if __name__ == '__main__':
     rank = comm.Get_rank()
     size = comm.Get_size()
     print("rank: {0}\n".format(rank))
-    mon = Monitor()
+    # mon = Monitor()
     time.sleep(1)
 
 
@@ -97,33 +99,40 @@ if __name__ == '__main__':
 
     
     if rank % 2 == 0: #PRODUCENT
-        for _ in range(3):
-            print("rank: {0} -> {1}\n".format(rank,_))
-            czas2 = random.randint(1,3)
-            time.sleep(czas2)
-            mon.enterCS()
-            print("before: {0}\n".format(mon.token.inStock))
-            while(mon.token.inStock == 1): mon.wait("FULL")
-            print("rank: {0} produkuje..\n".format(rank))
-            mon.token.inStock+=1
-            print("after: {0}\n".format(mon.token.inStock))
-            mon.signalAll("EMPTY")
-            mon.exitCS()
+        prod = Producer()
+        for _ in range(6):
+            prod.produce(1)
+            # print("rank: {0} -> {1}\n".format(rank,_))
+            # czas2 = random.randint(1,3)
+            # time.sleep(czas2)
+            # mon.enterCS()
+            # print("before: {0}\n".format(mon.token.inStock))
+            # while(mon.token.inStock == 1): mon.wait("FULL")
+            # print("rank: {0} produkuje..\n".format(rank))
+            # mon.token.inStock+=1
+            # print("after: {0}\n".format(mon.token.inStock))
+            # mon.signalAll("EMPTY")
+            # mon.exitCS()
+        prod.kill()
     else:
-        for _ in range(3):
-            print("rank: {0} -> {1}\n".format(rank,_))
-            czas2 = random.randint(1,3)
-            time.sleep(czas2)
-            mon.enterCS()
-            print("before: {0}\n".format(mon.token.inStock))
-            while(mon.token.inStock == 0): mon.wait("EMPTY")
-            print("rank: {0} konsumuje..\n".format(rank))
-            mon.token.inStock-=1
-            print("after: {0}\n".format(mon.token.inStock))
-            mon.signalAll("FULL")
-            mon.exitCS()
+        cli = Client()
+        for _ in range(6):
+            cli.consume()
+            # print("rank: {0} -> {1}\n".format(rank,_))
+            # czas2 = random.randint(1,3)
+            # time.sleep(czas2)
+            # mon.enterCS()
+            # print("before: {0}\n".format(mon.token.inStock))
+            # while(mon.token.inStock == 0): mon.wait("EMPTY")
+            # print("rank: {0} konsumuje..\n".format(rank))
+            # mon.token.inStock-=1
+            # print("after: {0}\n".format(mon.token.inStock))
+            # mon.signalAll("FULL")
+            # mon.exitCS()
+        cli.kill()
+            
     print("loop ended\n")
-    mon.kill()
+    # mon.kill()
     # mon.threadLive = False
 
     
