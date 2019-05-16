@@ -54,6 +54,7 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 
 * apt-get install libcr-dev mpich mpich-doc
 * pip install mpi4py
+
 **Uruchomienie programu**
 
 `mpiexec -n {liczba_procesów} python3 main.py`
