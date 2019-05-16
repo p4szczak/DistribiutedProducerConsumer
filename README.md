@@ -47,8 +47,10 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 * `kill()` &rarr; proces i-ty wysyła do wszystkich innych procesów wiadomość o swojej śmierci i zmienia wartość zmiennej `threadLive` na `false`
 
 * `recieverThread()` &rarr; wątek poboczny odbierający wiadomości od innych procesów:
-&rarr; w przypadku, gdy proces i odbierze zapytanie o token od procesu j-tego sprawdza, czy wiadmość jest przestarzała, jeżeli nie aktualizuje lokalną tablicę z numerami zapytań. Następnie, jeżeli proces i-ty posiada token i nie jest w sekcji krytycznej, przesyła go procesowi j-temu.
-&rarr; jeżeli proces i-ty odbierze wiadomość o śmierci procesu j-tego - zwiększa liczbę procesów nieżywych. Wątek kończy pracę w momencie gdy: zmienna `threadLive` jest równa `false` i proces nie posiada tokenu lub gdy proces i-ty pozostał ostatnim procesem żyjącym.
+
+  &rarr; w przypadku, gdy proces i odbierze zapytanie o token od procesu j-tego sprawdza, czy wiadmość jest przestarzała, jeżeli nie aktualizuje lokalną tablicę z numerami zapytań. Następnie, jeżeli proces i-ty posiada token i nie jest w sekcji krytycznej, przesyła go procesowi j-temu.
+
+  &rarr; jeżeli proces i-ty odbierze wiadomość o śmierci procesu j-tego - zwiększa liczbę procesów nieżywych. Wątek kończy pracę w momencie gdy: zmienna `threadLive` jest równa `false` i proces nie posiada tokenu lub gdy proces i-ty pozostał ostatnim procesem żyjącym.
 
 **Dodatkowe wymagania przed uruchomieniem**
 
