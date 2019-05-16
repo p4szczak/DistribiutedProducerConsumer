@@ -13,6 +13,7 @@ class Producer(Monitor):
         print("id = {0} before: {1}\n".format(self.getIdent(), self.getNumerOfElementsOnStock()))
         while(self.getNumerOfElementsOnStock() == buffSize): self.wait("FULL")
         print("id = {0} is producing...\n".format(self.getIdent()))
+        time.sleep(sleep_time)
         self.putElementOnStock()
         print("id = {0} after: {1}\n".format(self.getIdent(), self.getNumerOfElementsOnStock()))
         self.signalAll("EMPTY")

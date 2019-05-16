@@ -13,6 +13,7 @@ class Client(Monitor):
         print("id = {0} before: {1}\n".format(self.getIdent(), self.getNumerOfElementsOnStock()))
         while(self.getNumerOfElementsOnStock() == 0): self.wait("EMPTY")
         print("id = {0} is consuming..\n".format(self.getIdent()))
+        time.sleep(sleep_time)
         self.popElementFromStock()
         print("id = {0} after: {1}\n".format(self.getIdent(), self.getNumerOfElementsOnStock()))
         self.signalAll("FULL")

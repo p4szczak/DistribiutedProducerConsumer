@@ -168,7 +168,7 @@ class Monitor:
         while True:
             info = MPI.Status()
             self.comm.iprobe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
-            self.mutex.acquire()
+            
 
             if info.tag == MsgType.REQUEST.value: 
                 
@@ -182,18 +182,21 @@ class Monitor:
                 self.RN[req.ident] = req.seqNo
 
                 if self.hasToken and not(self.inCS) and self.RN[req.ident] == self.token.LN[req.ident] + 1:
+                    self.mutex.acquire()
                     print("id = {0} send token via thread to: {1}\n".format(self.ident, req.ident))
                     
                     self.token.LN = self.RN
                     self.comm.send(self.token, dest = req.ident, tag = MsgType.TOKEN.value)
                     self.hasToken = False
                     self.token = None
+                    
+                    self.mutex.release()
             if info.tag == MsgType.KILL.value:
                 req = self.comm.irecv(source = MPI.ANY_SOURCE, tag = MsgType.KILL.value).wait()
                 print("id = {0} recieved information about kill from: {1}\n".format(self.ident, req.ident))
                 deadCount+=1
 
-            self.mutex.release()
+            
             if (self.threadLive == False and self.hasToken == False) or (self.comm.Get_size() - deadCount == 1):
                 print("id = {0} breaks\n".format(self.ident))
                 break
