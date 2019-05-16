@@ -6,8 +6,6 @@ import logging
 import threading
 import time
 
-
-# enum
 class MsgType(Enum):
     REQUEST = 1
     TOKEN = 2
@@ -37,29 +35,25 @@ class Monitor:
             print("id = {0} initializing token\n".format(self.ident))
             self.token = Token([0] * self.comm.Get_size(), deque([]) , 0, {})
             self.hasToken = True
-        # self.stop_threads = False
         self.t1 = threading.Thread(target= self.recieverThread)
         self.t1.start()
-        # t1.join()
+    
+    def getIdent(self):
+        return self.ident
 
     def kill(self):
         self.mutex.acquire()
         self.threadLive = False
         self.mutex.release()
-        # self.actives.remove(self.ident)
+
         for i in self.actives:
             if i == self.ident: continue
-            print("id = {0} sends info about dying\n".format(self.ident))
+            print("id = {0} sends info about dying to {1}\n".format(self.ident, i))
             req = Request(self.ident, -1)
             self.comm.isend(req, dest = i, tag = MsgType.KILL.value)
 
         self.t1.join()
-        # self.token = None
-        
 
-        # while self.hasToken and len(self.actives) > 0:
-        #     print("{0} {1}".format(self.hasToken, len(self.actives)))
-            # self.comm.send(self.token, dest = self.actives[0], tag=MsgType.TOKEN.value)
         print("id = {0} is dead\n".format(self.ident))
     
 
@@ -87,7 +81,6 @@ class Monitor:
         self.RN[self.ident] += 1
         req = Request(self.ident, self.RN[self.ident])
         for i in self.actives:
-            # print(type(i))
             
             print("id = {0} sending request to {1} with seq: {2}\n".format(self.ident, i, req.seqNo))
             if(self.ident == i): continue
@@ -155,16 +148,16 @@ class Monitor:
                 self.token.queue.append(self.token.condQueue[condString].popleft())
         self.mutex.release()
     
-    def getNumerOfElementsOnStack(self):
+    def getNumerOfElementsOnStock(self):
         if not(self.hasToken): print("You should not be here")
         return self.token.inStock
     
-    def putElementOnStack(self):
+    def putElementOnStock(self):
         if not(self.hasToken): print("You should not be here")
         self.token.inStock+=1
 
 
-    def popElementFromStack(self):
+    def popElementFromStock(self):
         if not(self.hasToken): print("You should not be here")
         self.token.inStock-=1
 
@@ -176,13 +169,12 @@ class Monitor:
             info = MPI.Status()
             self.comm.iprobe(source = MPI.ANY_SOURCE, tag = MPI.ANY_TAG, status = info)
             self.mutex.acquire()
-            # self.mutex_lock
+
             if info.tag == MsgType.REQUEST.value: 
                 
                 req = self.comm.irecv(source = MPI.ANY_SOURCE, tag = MsgType.REQUEST.value).wait()
                 print("id = {0} new request from: {1} with seq = {2}\n".format(self.ident, req.ident,req.seqNo))
                 
-                # self.RN[req.ident] = req.seqNo if self.RN[req.ident] < req.seqNo else self.RN[req.ident]
                 
                 if self.RN[req.ident] >= req.seqNo:
                     continue
@@ -200,7 +192,7 @@ class Monitor:
                 req = self.comm.irecv(source = MPI.ANY_SOURCE, tag = MsgType.KILL.value).wait()
                 print("id = {0} recieved information about kill from: {1}\n".format(self.ident, req.ident))
                 deadCount+=1
-                # self.actives.remove(req.ident)
+
             self.mutex.release()
             if (self.threadLive == False and self.hasToken == False) or (self.comm.Get_size() - deadCount == 1):
                 print("id = {0} breaks\n".format(self.ident))
