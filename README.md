@@ -16,14 +16,14 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 | Pik | Opis |
 | ------ | ------ |
 | main.py | główny plik projektu przypisujący role poszczególnym procesom i wywołujący metody w zależności od roli przypisanej procesowi |
-| Monitor.py | plik zawiera klasę realizującą implementację rozproszonego monitora w oparciu o algorytm Suzuki-Kasami, dodatkowo strukturę stworzoną dla zapytań oraz enum z tagami wiadomości |
+| Monitor.py | plik zawiera klasę realizującą implementację rozproszonego monitora w oparciu o algorytm Suzuki-Kasami, dodatkowo zawiera strukturę stworzoną dla zapytań oraz enum z tagami wiadomości |
 | Token.py | plik reprezentuje klasę - Token, czyli strukturę danych przesyłaną pomiędzy procesami |
 | Client.py | klasa konsumenta, dziedziczy po klasie Monitor |
 | Producer.py | klasa producenta, dziedziczy po klasie Monitor |
 
 **Opis klasy Token**
 
-* tablica LN &rarr; numer ostatniego zapytania, kiedy token został poprawnie przydzielony dla procesu j-etgo
+* tablica LN &rarr; przechowuje numery ostatnich zapytań, kiedy token został poprawnie przydzielony
 
 * queue &rarr; kolejka główna przechowująca procesy oczekujące na token
 
