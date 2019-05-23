@@ -34,11 +34,11 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 **Opis metod klasy Monitor**
 
 
-* `enterCS()` &rarr; w momencie, gdy proces i-ty próbuje wejść do sekcji krytcznej, sprawdza czy nie posiada tokenu. Jeżeli proces i-ty posiada token oznacza to, że proces i-ty jest uprawniony do wejścia do sekcji krytycznej. W przeciwnym wypadku wysyła zapytanie o token do wszystkich procesów i czeka na jego otrzymanie. W momencie otrzymania tokenu proces staje się uprawniony by wejść do sekcji krytycznej.
+* `enterCS()` &rarr; w momencie, gdy proces i-ty próbuje wejść do sekcji krytcznej, sprawdza czy nie posiada tokenu. Jeżeli proces i-ty posiada token oznacza to, że jest on uprawniony do wejścia do sekcji krytycznej. W przeciwnym wypadku wysyła zapytanie o token do wszystkich procesów i czeka na jego otrzymanie. W momencie otrzymania tokenu proces staje się uprawniony by wejść do sekcji krytycznej.
 
 * `exitCS()` &rarr; w momencie, gdy proces opuszcza sekcję krytyczną sprawdza, czy wystąpiły zapytania o token, jeżeli tak przesyła token do następnego procesu z kolejki.
 
-* `wait(zmienna_warunkowa)` &rarr; proces i-ty dodaje swoje ID do odpowiedniej kolejki warunkowej w i zwalnia token, po czym oczekuje na ponowne otrzymanie tokenu upoważniającego go do wejścia do sekcji krytycznej
+* `wait(zmienna_warunkowa)` &rarr; proces i-ty dodaje swoje ID do odpowiedniej kolejki warunkowej i zwalnia token, po czym oczekuje na ponowne otrzymanie tokenu upoważniającego go do wejścia do sekcji krytycznej
 
 * `signal(zmiana_warunkowa)` &rarr; proces i-ty wykonując metodę signal na zmiennej warunkowej, przenosi jeden z procesów z kolejki warunkowej do głównej kolejki procesów oczekujących na token
 
@@ -48,9 +48,9 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 
 * `recieverThread()` &rarr; wątek poboczny odbierający wiadomości od innych procesów:
 
-  &rarr; w przypadku, gdy proces i odbierze zapytanie o token od procesu j-tego sprawdza, czy wiadmość jest przestarzała, jeżeli nie aktualizuje lokalną tablicę z numerami zapytań. Następnie, jeżeli proces i-ty posiada token i nie jest w sekcji krytycznej, przesyła go procesowi j-temu.
+  &rarr; w przypadku, gdy proces i-ty odbierze zapytanie o token od procesu j-tego sprawdza, czy wiadmość jest przestarzała, jeżeli nie aktualizuje lokalną tablicę z numerami zapytań. Następnie, jeżeli proces i-ty posiada token i nie jest w sekcji krytycznej, przesyła go procesowi j-temu.
 
-  &rarr; jeżeli proces i-ty odbierze wiadomość o śmierci procesu j-tego - zwiększa liczbę procesów nieżywych. Wątek kończy pracę w momencie gdy: zmienna `threadLive` jest równa `false` i proces nie posiada tokenu lub gdy proces i-ty pozostał ostatnim procesem żyjącym.
+  &rarr; jeżeli proces i-ty odbierze wiadomość o śmierci procesu j-tego - zwiększa liczbę procesów nieżywych. Wątek kończy pracę w momencie gdy: zmienna `threadLive` jest równa `false` i proces nie posiada tokenu lub gdy proces i-ty pozostał ostatnim procesem żywym.
 
 **Dodatkowe wymagania przed uruchomieniem**
 
