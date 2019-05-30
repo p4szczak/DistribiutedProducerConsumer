@@ -60,3 +60,7 @@ Do realizacji wzajemnego wykluczania został wykorzystany algorytm Suzuki-Kasami
 **Uruchomienie programu**
 
 `mpiexec -n {liczba_procesów} python3 main.py`
+
+**Dodatkowe rozszerzenie**
+
+Implementację można byłoby również przedstawić za pomocą klasy IToken posiadającą podstawowe pola tzn. kolejkę główną, tablicę LN i kolejki warunkowe. Następnie stworzyć klasę TokenPC (token dla problemu producenta i konsumenta), dziedziczącą po klasie IToken. TokenPC zawierałby dodatkowo liczbę elementów w magazynie (wyglądałby identycznie jak klasa Token z powyższej implementacji). Takie przedstawienie problemu pozwoliłoby na łatwiejsze wykorzystanie implementacji monitora w ramach innych problemów przetwarzania rozproszonego.
